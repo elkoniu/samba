@@ -27,6 +27,8 @@
 #include "tevent_internal.h"
 #include "tevent_util.h"
 
+static uint32_t g_chain_id;
+
 char *tevent_req_default_print(struct tevent_req *req, TALLOC_CTX *mem_ctx)
 {
 	return talloc_asprintf(mem_ctx,
@@ -103,6 +105,8 @@ struct tevent_req *_tevent_req_create(TALLOC_CTX *mem_ctx,
 	talloc_set_name_const(data, type);
 
 	req->data = data;
+    /* Set chain tracking ID */
+    req->chain_id = g_chain_id;
 
 	talloc_set_destructor(req, tevent_req_destructor);
 
@@ -131,6 +135,7 @@ static int tevent_req_destructor(struct tevent_req *req)
 
 void _tevent_req_notify_callback(struct tevent_req *req, const char *location)
 {
+    uint32_t old_id;
 	req->internal.finish_location = location;
 	if (req->internal.defer_callback_ev) {
 		(void)tevent_req_post(req, req->internal.defer_callback_ev);
@@ -138,7 +143,10 @@ void _tevent_req_notify_callback(struct tevent_req *req, const char *location)
 		return;
 	}
 	if (req->async.fn != NULL) {
+        old_id = g_chain_id;
+        g_chain_id = req->chain_id;
 		req->async.fn(req);
+        g_chain_id = old_id;
 	}
 }
 
@@ -567,4 +575,16 @@ void tevent_req_profile_append_sub(struct tevent_req_profile *parent_profile,
 
 	sub->parent = parent_profile;
 	DLIST_ADD_END(parent_profile->subprofiles, sub);
+}
+
+uint32_t tevent_req_get_chain_id(void)
+{
+    return g_chain_id;
+}
+
+uint32_t tevent_req_set_chain_id(uint32_t chain_id)
+{
+    uint32_t old_chain_id = g_chain_id;
+    g_chain_id = chain_id;
+    return old_chain_id;
 }

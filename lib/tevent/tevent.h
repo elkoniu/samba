@@ -1,4 +1,4 @@
-/* 
+/*
    Unix SMB/CIFS implementation.
 
    generalised event loop handling
@@ -2507,5 +2507,8 @@ bool tevent_context_same_loop(struct tevent_context *ev1,
 #endif /* TEVENT_COMPAT_DEFINES */
 
 /* @} */
+
+uint32_t tevent_req_get_chain_id(void);
+uint32_t tevent_req_set_chain_id(uint32_t chain_id);
 
 #endif /* __TEVENT_H__ */
